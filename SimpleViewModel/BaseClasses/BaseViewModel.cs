@@ -25,6 +25,7 @@ public class BaseViewModel : INotifyPropertyChanged
         if (EqualityComparer<T>.Default.Equals(reference, value))
             return;
 
+        reference = value;
         PropertyChanged?.Invoke(this, new(propertyName));
     }
 
