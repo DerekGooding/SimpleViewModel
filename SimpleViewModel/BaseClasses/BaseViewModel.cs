@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 
 namespace SimpleViewModel.BaseClasses;
 
@@ -9,6 +10,8 @@ namespace SimpleViewModel.BaseClasses;
 /// </summary>
 public class BaseViewModel : INotifyPropertyChanged
 {
+    private readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
+
     /// <inheritdoc/>
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -21,9 +24,11 @@ public class BaseViewModel : INotifyPropertyChanged
     /// <param name="propertyName">The name of the property. This is optional and is automatically provided by the compiler.</param>
     protected void SetProperty<T>(ref T reference, T value, [CallerMemberName] string propertyName = "")
     {
-        if (Equals(reference, value)) return;
+        if (EqualityComparer<T>.Default.Equals(reference, value))
+            return;
+
         reference = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        RaisePropertyChanged(propertyName);
     }
 
     /// <summary>
@@ -32,4 +37,27 @@ public class BaseViewModel : INotifyPropertyChanged
     /// <param name="propertyName">The name of the property. This is optional and is automatically provided by the compiler.</param>
     protected virtual void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private void RaisePropertyChanged(string propertyName)
+    {
+        var handler = PropertyChanged;
+        if (handler is null)
+            return;
+
+        if (_syncContext != null)
+        {
+            _syncContext.Post(_ => handler(this, new(propertyName)), null);
+        }
+        else
+        {
+            handler(this, new(propertyName));
+        }
+    }
+
+    /// <summary>
+    /// Called when a generated command throws.
+    /// Default behavior preserves stack and crashes (correct for debugging).
+    /// Override in derived VMs for logging or UI reporting.
+    /// </summary>
+    public virtual void OnCommandException(Exception ex) => ExceptionDispatchInfo.Capture(ex).Throw();
 }
