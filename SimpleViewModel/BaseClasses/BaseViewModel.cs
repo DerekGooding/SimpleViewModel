@@ -10,8 +10,6 @@ namespace SimpleViewModel.BaseClasses;
 /// </summary>
 public class BaseViewModel : INotifyPropertyChanged
 {
-    private readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
-
     /// <inheritdoc/>
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -27,8 +25,7 @@ public class BaseViewModel : INotifyPropertyChanged
         if (EqualityComparer<T>.Default.Equals(reference, value))
             return;
 
-        reference = value;
-        RaisePropertyChanged(propertyName);
+        PropertyChanged?.Invoke(this, new(propertyName));
     }
 
     /// <summary>
@@ -37,22 +34,6 @@ public class BaseViewModel : INotifyPropertyChanged
     /// <param name="propertyName">The name of the property. This is optional and is automatically provided by the compiler.</param>
     protected virtual void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-    private void RaisePropertyChanged(string propertyName)
-    {
-        var handler = PropertyChanged;
-        if (handler is null)
-            return;
-
-        if (_syncContext != null)
-        {
-            _syncContext.Post(_ => handler(this, new(propertyName)), null);
-        }
-        else
-        {
-            handler(this, new(propertyName));
-        }
-    }
 
     /// <summary>
     /// Called when a generated command throws.
