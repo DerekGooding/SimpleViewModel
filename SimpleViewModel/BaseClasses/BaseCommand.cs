@@ -1,4 +1,5 @@
-﻿using System.Windows.Input;
+﻿using System.Windows;
+using System.Windows.Input;
 
 namespace SimpleViewModel.BaseClasses;
 
@@ -14,6 +15,18 @@ public class BaseCommand : ICommand
     {
         add => CommandManager.RequerySuggested += value;
         remove => CommandManager.RequerySuggested -= value;
+    }
+
+    /// <summary>
+    /// Forces WPF to re-evaluate <see cref="CanExecute"/> for all commands.
+    /// Safe to call from any thread — marshals to the UI dispatcher if needed.
+    /// </summary>
+    public void RaiseCanExecuteChanged()
+    {
+        if (Application.Current?.Dispatcher.CheckAccess() == true)
+            CommandManager.InvalidateRequerySuggested();
+        else
+            Application.Current?.Dispatcher.Invoke(CommandManager.InvalidateRequerySuggested);
     }
 
     /// <summary>
